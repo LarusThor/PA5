@@ -4,15 +4,15 @@ Basic Networked Chat Server
 
 **Short Description of the Project:**
 
-For this project, I will create a basic networked chat server in C++. The program will allow multiple clients to connect to a server using TCP sockets. Once connected, each client can send plain text messages, which the server will relay to all other connected clients.
+For this project, we will create a basic networked chat server in C++. The program will allow multiple clients to connect to a server using TCP sockets. Once connected, each client can send plain text messages, which the server will relay to all other connected clients.
 
-The focus will be on building a working, simple system using real-world networking tools and learning how to use threads in C++ for handling multiple clients. I will use the asio C++ library (a header-only networking library) to handle socket communication.
+The focus will be on building a working, simple system using real-world networking tools and learning how to use threads in C++ for handling multiple clients. we will use the asio C++ library (a header-only networking library) to handle socket communication.
 
 This project is intended to help me learn how networking and concurrency work in C++ in a hands-on way, while keeping the codebase simple and understandable as a beginner.
 
-**Items I Plan to Fulfill (and Estimated Points):**
+**Items we Plan to Fulfill (and Estimated Points):**
 Use networking with proper concurrency management — 40 points
-How it's fulfilled: I will use TCP sockets to allow multiple clients to connect to a server and send messages.
+How it's fulfilled: we will use TCP sockets to allow multiple clients to connect to a server and send messages.
 
 Tool: asio library (standalone, no Boost required).
 
@@ -35,7 +35,7 @@ Making sure shared data (like a list of connected clients) is accessed safely.
 
 Handling client disconnects without crashing the server.
 
-**Interesting Things I Expect to Learn:**
+**Interesting Things we Expect to Learn:**
 Basics of TCP networking in C++
 
 - How to use threads and mutexes in C++
@@ -44,8 +44,8 @@ Basics of TCP networking in C++
 
 - How to manage input/output between multiple users in a networked program
 
-**Functionality I Want to Avoid Implementing Myself:**
-I will use the asio library for:
+**Functionality we Want to Avoid Implementing Myself:**
+we will use the asio library for:
 
 Creating and managing TCP sockets
 
