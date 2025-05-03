@@ -81,3 +81,30 @@ Nicknames for users
 Basic logging of chat messages to a file
 ➤ Estimated: 90–100 points
 
+**Skeleton for project implementation:**
+
+🔌 Server Side
+Create asio::io_context
+
+Create an acceptor to listen on a port
+
+Accept client connections
+
+Create a socket for each client
+
+Start reading from the socket (sync or async)
+
+Optionally: spawn a thread for each client or use async callbacks
+
+Handle incoming data, parse messages, and broadcast or respond
+
+🧑‍💻 Client Side
+Create asio::io_context
+
+Create a socket and connect to server's IP/port
+
+Write messages to the server
+
+Start reading responses (again, sync or async)
+
+Run io_context.run() in main thread or a background thread
