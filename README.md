@@ -84,6 +84,7 @@ Basic logging of chat messages to a file
 **Skeleton for project implementation:**
 
 🔌 Server Side
+
 Create asio::io_context
 
 Create an acceptor to listen on a port
