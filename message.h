@@ -7,6 +7,10 @@ struct message_header{
     uint32_t size = 0;
 };
 
+
+template<typename T>
+class connection;
+
 template <typename T>
 struct message{
     message_header<T> header{};
@@ -47,21 +51,17 @@ struct message{
 
         return msg;
     }
+};
 
-   
-    class connection;
+template<typename U>
+struct owned_message
+{
+    std::shared_ptr<connection<U>> remote = nullptr;
+    message<U> msg;
 
-    
-    struct owned_message
+    friend std::ostream& operator<<(std::ostream& os, const owned_message<U>& msg)
     {
-        std::shared_ptr<connection<T>> remote = nullptr;
-        message<T> msg;
-
-        friend std::ostream& operator<<(std::ostream& os, const owned_message<T>& msg)
-        {
-            os << msg.msg;
-            return os;
-        }
-    };
-
+        os << msg.msg;
+        return os;
+    }
 };

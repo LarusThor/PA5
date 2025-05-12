@@ -7,7 +7,7 @@
 template<typename T>
 class client_interface{
 
-    client_interface() : socket(context){}
+    client_interface(){}
 
     virtual ~client_interface(){
         Disconnect();
@@ -18,10 +18,16 @@ class client_interface{
             
             try{
 
-                connection = std::make_unique<connection<T>>();
                 asio::ip::tcp::resolver resolver(context);
-                endpoints = resolver.resolve(host, std::to_string(port));
+                asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
+                connection = std::make_unique<connection<T>>(
+                    connection<T>::owner::client,
+                    context,
+                    asio::ip::tcp::socket(context),
+                    m_qMessagesIn
+                );
+                
                 connection->ConnectToServer(endpoints);
 
                 thrContext = std::thread([this]() {context.run();});
@@ -55,7 +61,7 @@ class client_interface{
             }
         }
 
-        tsqueue<owned_msg<T>>& Incoming(){
+        tsqueue<owned_message<T>>& Incoming(){
             return m_qMessagesIn;
         }
 
@@ -65,6 +71,6 @@ class client_interface{
         std::unique_ptr<connection<T>> connection;
         
     private:
-        tsqueue<owned_msg<T>> m_qMessagesIn;
+        tsqueue<owned_message<T>> m_qMessagesIn;
 
 };
