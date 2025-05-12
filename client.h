@@ -7,11 +7,12 @@
 template<typename T>
 class client_interface{
 
-    client_interface(){}
+    public:
+        client_interface(){}
 
-    virtual ~client_interface(){
-        Disconnect();
-    }
+        virtual ~client_interface(){
+            Disconnect();
+        }
 
     public:
         bool Connect(const std::string& host, const uint16_t port){
