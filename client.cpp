@@ -68,6 +68,8 @@ public:
 
 int main(){
     
+    //TODO: Make messages write out in the server and display username of client, currently does nothing but ask for username
+
     CustomClient client;
     client.Connect("127.0.0.1", 60000);
 
