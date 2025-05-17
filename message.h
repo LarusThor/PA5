@@ -39,7 +39,7 @@ struct message{
     }
 
     template <typename DataType>
-    friend message<T>& operator >> (message<T>& msg, const DataType& data){
+    friend message<T>& operator >> (message<T>& msg, DataType& data){
 
         static_assert(std::is_standard_layout<DataType>::value, "Data is too complex");
         size_t i = msg.body.size() - sizeof(DataType);
@@ -51,6 +51,32 @@ struct message{
 
         return msg;
     }
+
+        friend message<T>& operator<<(message<T>& msg, const std::string& data)
+    {
+        uint32_t length = data.size();
+        msg << length; // First, send string length
+        msg.body.insert(msg.body.end(), data.begin(), data.end()); // Then, send string chars
+        msg.header.size = msg.size();
+        return msg;
+    }
+
+    // Deserialize std::string from the message
+    friend message<T>& operator>>(message<T>& msg, std::string& data)
+    {
+        uint32_t length;
+        msg >> length; // Read string length
+
+        data.resize(length);
+        std::memcpy(data.data(), msg.body.data() + msg.body.size() - length, length);
+        msg.body.resize(msg.body.size() - length);
+        msg.header.size = msg.size();
+
+        return msg;
+    }
+
+
+
 };
 
 template<typename U>

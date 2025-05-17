@@ -11,8 +11,8 @@
 #include <chrono>
 #include <cstdint>
 
-#ifdef _WIN32
-#define _WIN32_WINNT 0x0A00
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
 #endif
 
 #define ASIO_STANDALONE

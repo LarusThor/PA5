@@ -4,24 +4,37 @@
 #include "message.h"
 #include "tsqueue.h"
 
+enum class owner{
+    server,
+    client
+};
+
 template<typename T>
 class connection : public std::enable_shared_from_this<connection<T>>{
     public:
 
-        enum class owner{
-            server,
-            client
-        };
-
-        connection(owner parent, asio::io_context& asioContext, assio::ip::Tcp::socket socket, tsqueue<owned_message<T>>& qIn) : asioContext(asioContext), socket(std::move(socket)), m_qMessagesIn(qIn)
+        connection(owner parent, 
+            asio::io_context& asioContext,
+             asio::ip::tcp::socket socket,
+              tsqueue<owned_message<T>>& qIn) : context(asioContext),
+               socket(std::move(socket)),
+                m_qMessagesIn(qIn),
+                nOwnerType(parent)
         {
-            m_nOwnerType = parent;
         }
 
         virtual ~connection(){}
 
         uint32_t GetID() const{
             return id;
+        }
+
+        void SetUsername(const std::string& name) {
+            username = name;
+        }
+
+        std::string GetUsername() const {
+            return username;
         }
     
     public:
@@ -38,18 +51,20 @@ class connection : public std::enable_shared_from_this<connection<T>>{
         bool ConnectToServer(const asio::ip::tcp::resolver::results_type& endpoints){
             if (nOwnerType == owner::client){
                 asio::async_connect(socket, endpoints, 
-                [this](std::error_code ec, std::size_t length){
+                [this](std::error_code ec, asio::ip::tcp::endpoint){
                     if (!ec){
                         ReadHeader();
                     }
-                })
+                });
             }
+            return true;
         };
 
         bool Disconnect(){
             if (IsConnected()){
-                asio::post(context, [this]() { socket.close() });
+                asio::post(context, [this]() { socket.close(); });
             }
+            return true;
         };
 
         bool IsConnected() const{
@@ -57,18 +72,18 @@ class connection : public std::enable_shared_from_this<connection<T>>{
         };
     
     public:
-        bool Send(const message<T>& msg){
+        void Send(const message<T>& msg){
             asio::post(context, [this, msg](){
                 bool WritingMessage = !m_qMessagesOut.empty();
                 m_qMessagesOut.push_back(msg);
                 if (!WritingMessage){
                     WriteHeader();
                 }
-            })
-
+            });
         };
 
     private:
+
         void ReadHeader(){
             asio::async_read(socket, asio::buffer(&msgTemporaryIn.header, sizeof(message_header<T>)),
             [this](std::error_code ec, std::size_t length){
@@ -83,10 +98,11 @@ class connection : public std::enable_shared_from_this<connection<T>>{
                 std::cout << "[" << id << "] Read Header Fail.\n";
                 socket.close();
             }}
-        )};
+        );}
         
         void ReadBody(){
-            asio::async_read(socket, asio::buffer(msgTemporaryIn.body.data(), msgTemporaryIn.body.size())
+            asio::async_read(socket, 
+                asio::buffer(msgTemporaryIn.body.data(), msgTemporaryIn.body.size()),
             [this](std::error_code ec, std::size_t length){
                 
                 if(!ec){
@@ -96,11 +112,12 @@ class connection : public std::enable_shared_from_this<connection<T>>{
                     socket.close();
                 }
 
-            })
-        }
+            }
+        );
+    }
 
         void WriteHeader(){
-            asio::async_write(socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>))
+            asio::async_write(socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
                 [this](std::error_code ec, std::size_t length){
                     if (!ec){
 
@@ -116,7 +133,8 @@ class connection : public std::enable_shared_from_this<connection<T>>{
                         }
                     } 
                 }
-        )}
+        );
+    }
 
         void WriteBody(){
             asio::async_write(socket, asio::buffer(m_qMessagesOut.front().body.data(), m_qMessagesOut.front().body.size()),
@@ -132,10 +150,10 @@ class connection : public std::enable_shared_from_this<connection<T>>{
                         std::cout << "[" << id << "] Write Body Fail\n";
                         socket.close();
                     }
-                })
+                });
         }
 
-        void AddToIncomiingMessageQueue(){
+        void AddToIncomingMessageQueue(){
             if(nOwnerType == owner::server){
                 m_qMessagesIn.push_back({ this->shared_from_this(), msgTemporaryIn });
             } else {
@@ -146,10 +164,11 @@ class connection : public std::enable_shared_from_this<connection<T>>{
         }
     protected:
         asio::ip::tcp::socket socket;
-        asio::io_context context;
+        asio::io_context& context;
         tsqueue<message<T>> m_qMessagesOut;
         tsqueue<owned_message<T>>& m_qMessagesIn;
         message<T> msgTemporaryIn;
         owner nOwnerType = owner::server;
         uint32_t id = 0;
+        std::string username;
 };

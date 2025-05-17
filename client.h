@@ -14,6 +14,13 @@ class client_interface{
             Disconnect();
         }
 
+        
+        void Send(const message<T>& msg)
+        {
+            if (IsConnected())
+                    mainConnection->Send(msg);
+        }
+
     public:
         bool Connect(const std::string& host, const uint16_t port){
             
@@ -22,14 +29,15 @@ class client_interface{
                 asio::ip::tcp::resolver resolver(context);
                 asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
-                connection = std::make_unique<connection<T>>(
-                    connection<T>::owner::client,
+                
+                mainConnection = std::make_unique<connection<T>>(
+                    owner::client,
                     context,
                     asio::ip::tcp::socket(context),
                     m_qMessagesIn
                 );
                 
-                connection->ConnectToServer(endpoints);
+                mainConnection->ConnectToServer(endpoints);
 
                 thrContext = std::thread([this]() {context.run();});
 
@@ -43,20 +51,20 @@ class client_interface{
         }
 
         void Disconnect(){
-            if (IsConncted()){
-                connection->Disconnect();
+            if (IsConnected()){
+                mainConnection->Disconnect();
             }
 
             context.stop();
             if (thrContext.joinable())
                 thrContext.join();
 
-            connection.release();
+            mainConnection.release();
         }
 
-        bool IsConncted(){
-            if (connection){
-                return connection->IsConnected;
+        bool IsConnected(){
+            if (mainConnection){
+                return mainConnection->IsConnected();
             } else {
                 return false;
             }
@@ -66,10 +74,16 @@ class client_interface{
             return m_qMessagesIn;
         }
 
+    public:
+        
+        virtual void OnMessage(message<T>& msg)
+            {
+            }
+
     protected:
         asio::io_context context;
         std::thread thrContext;
-        std::unique_ptr<connection<T>> connection;
+        std::unique_ptr<connection<T>> mainConnection;
         
     private:
         tsqueue<owned_message<T>> m_qMessagesIn;

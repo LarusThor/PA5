@@ -4,12 +4,13 @@
 #include "tsqueue.h"
 #include "message.h"
 #include "connection.h"
+#include <algorithm>
 
 template<typename T>
 class server_interface{
 
     public:
-        server_interface(uint16_t port) : asioAcceptor(asioContext, asio::ip::tcp::endpoint(asio::ip::tcp:v4(), port)){
+        server_interface(uint16_t port) : asioAcceptor(asioContext, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)){
 
         }
 
@@ -39,22 +40,23 @@ class server_interface{
            }
 
            std::cout << "[SERVER] Stopped!\n";
+           return true;
         }
 
         // ASYNC
         void WaitforClientConnection(){
-            asioAcceptor.async_accept([this](std::error_code ec, asio::tcp::ip::socket socket){
+            asioAcceptor.async_accept([this](std::error_code ec, asio::ip::tcp::socket socket){
 
                 if(!ec){
                     std::cout << "[SERVER] New Connection: " << socket.remote_endpoint() << "\n";
                     
                     std::shared_ptr<connection<T>> newConn = 
-                        std::make_shared<connection<T>>(connection<T>::owner::server, 
+                        std::make_shared<connection<T>>(owner::server, 
                             asioContext, 
                             std::move(socket), 
-                            m_qMessagesIn);
+                            m_qMessageIn);
 
-                    if(OnClientConnet(newConn)){
+                    if(OnClientConnect(newConn)){
                         deqConnections.push_back(std::move(newConn));
                         deqConnections.back()->ConnectToClient(nIDCounter++);
                         std::cout << "[" << deqConnections.back()->GetID() << "] Connection Approved\n";
@@ -62,7 +64,7 @@ class server_interface{
                         std::cout << "[-----] Connection Denied.\n";
                     }
                 } else {
-                    std::cout << "[SERVER] New Connection Error: " << e.message() << "\n";
+                    std::cout << "[SERVER] New Connection Error: " << ec.message() << "\n";
                 }
 
                 WaitforClientConnection();
@@ -83,7 +85,7 @@ class server_interface{
             bool InvalidClientExists = false;
 
             for(auto& client : deqConnections){
-                if(client && client.IsConnected()){
+                if(client && client->IsConnected()){
                     if(client != pIgnoreClient){
                         client->Send(msg);
                     }
@@ -95,11 +97,13 @@ class server_interface{
             }
         }
 
-        void Update(size_t nMaxMessages = -1){
+        void Update(size_t nMaxMessages = -1, bool bWait = false){
+            if(bWait) m_qMessageIn.wait();
+            
             size_t nMessages = 0;
             while(nMessages < nMaxMessages && !m_qMessageIn.empty()){
                 auto msg = m_qMessageIn.pop_front();
-                OnMessage(msg.remote, msg.msg);
+                this->OnMessage(msg.remote, msg.msg);
                 nMessages++;
             }
         }
@@ -110,12 +114,13 @@ class server_interface{
         }
 
         virtual void OnClientDisconnect(std::shared_ptr<connection<T>> client){
-
+            std::cout << "[Server] Client disconnected.\n";
         }
 
-        virtual void OnMessage(std::shared_ptr<connection<T>> client, message<T>& msg){
+        virtual void OnMessage(std::shared_ptr<connection<T>> client, message<T>& msg)
+        {
 
-        }
+		}
     
     protected:
         tsqueue<owned_message<T>> m_qMessageIn;
