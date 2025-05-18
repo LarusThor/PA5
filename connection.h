@@ -77,6 +77,7 @@ class connection : public std::enable_shared_from_this<connection<T>>{
                 bool WritingMessage = !m_qMessagesOut.empty();
                 m_qMessagesOut.push_back(msg);
                 if (!WritingMessage){
+                    std::cout << "Testing to see if we enter write header func\n";
                     WriteHeader();
                 }
             });
@@ -85,9 +86,11 @@ class connection : public std::enable_shared_from_this<connection<T>>{
     private:
 
         void ReadHeader(){
+            std::cout << "[" << id << "] Server: Waiting to read header...\n";
             asio::async_read(socket, asio::buffer(&msgTemporaryIn.header, sizeof(message_header<T>)),
             [this](std::error_code ec, std::size_t length){
             if (!ec){
+                std::cout << "[" << id << "] Server: Header read, size = " << msgTemporaryIn.header.size << "\n";
                 if (msgTemporaryIn.header.size > 0){
                     msgTemporaryIn.body.resize(msgTemporaryIn.header.size);
                     ReadBody();
@@ -117,34 +120,48 @@ class connection : public std::enable_shared_from_this<connection<T>>{
     }
 
         void WriteHeader(){
-            asio::async_write(socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
+            std::cout << "We entered the write header function\n";
+            asio::async_write(socket, 
+                asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
                 [this](std::error_code ec, std::size_t length){
                     if (!ec){
+                            std::cout << "We didn't encounter an error\n";
+                        if (m_qMessagesOut.front().body.size() > 0)
+							{
+                                std::cout << "We are entering WriteBody function\n";
+								WriteBody();
+							}
+							else
+							{
+								m_qMessagesOut.pop_front();
 
-                        if (m_qMessagesOut.front().body.size() > 0){
-                            WriteBody();
-                        }
+								if (!m_qMessagesOut.empty())
+								{
+									WriteHeader();
+								}
+							}
 
                     } else {
-                        m_qMessagesOut.pop_front();
-
-                        if (!m_qMessagesOut.empty()){
-                            WriteHeader();
+                        std::cout << "[" << id << "] Write Header Fail.\n";
+							socket.close();
                         }
-                    } 
-                }
+                    }
         );
     }
 
         void WriteBody(){
+            std::cout << "We entered the WriteBody function\n";
             asio::async_write(socket, asio::buffer(m_qMessagesOut.front().body.data(), m_qMessagesOut.front().body.size()),
                 [this](std::error_code ec, std::size_t length){
                     if (!ec){
-                        m_qMessagesOut.pop_front();
+                            std::cout << "We didn't encounter an error\n";
+                            m_qMessagesOut.pop_front();
 
-                        if (!m_qMessagesOut.empty()){
-                            WriteHeader();
-                        }
+                            if (!m_qMessagesOut.empty())
+                            {   
+                                std::cout << "We are going recursively now\n";
+                                WriteHeader();
+                            }
 
                     } else {
                         std::cout << "[" << id << "] Write Body Fail\n";
@@ -159,7 +176,7 @@ class connection : public std::enable_shared_from_this<connection<T>>{
             } else {
                 m_qMessagesIn.push_back({ nullptr, msgTemporaryIn});
             }
-
+            std::cout << "[" << id << "] Server: Finished processing message, waiting for next...\n";
             ReadHeader();
         }
     protected:

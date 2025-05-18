@@ -1,12 +1,15 @@
 #pragma once
 #include "common.h"
 
+#pragma pack(push, 1)
+
 template <typename T>
 struct message_header{
     T id{};
     uint32_t size = 0;
 };
 
+#pragma pack(pop)
 
 template<typename T>
 class connection;
@@ -26,17 +29,32 @@ struct message{
     }
 
     template <typename DataType>
-    friend message<T>& operator << (message<T>& msg, const DataType& data){
+    friend message<T>& operator<<(message<T>& msg, const DataType& data)
+    {
+        static_assert(std::is_standard_layout<DataType>::value, "Data is too complex to serialize");
 
-        static_assert(std::is_standard_layout<DataType>::value, "Data is too complex");
         size_t i = msg.body.size();
-        msg.body.resize(msg.body.size() + sizeof(DataType));
+        msg.body.resize(i + sizeof(DataType));
+        std::memcpy(msg.body.data() + i, &data, sizeof(DataType));
 
-        std::memcpy(msg.body.data() + i, &data, sizeof(DataType)); 
-        msg.header.size = msg.size();
-
+        msg.header.size = static_cast<uint32_t>(msg.body.size());
         return msg;
     }
+        friend message<T>& operator<<(message<T>& msg, const std::string& data)
+    {
+        uint32_t length = static_cast<uint32_t>(data.size());
+
+        // Reserve space for length + content
+        size_t i = msg.body.size();
+        msg.body.resize(i + sizeof(uint32_t) + length);
+
+        std::memcpy(msg.body.data() + i, &length, sizeof(uint32_t));
+        std::memcpy(msg.body.data() + i + sizeof(uint32_t), data.data(), length);
+
+        msg.header.size = static_cast<uint32_t>(msg.body.size());
+        return msg;
+    }
+
 
     template <typename DataType>
     friend message<T>& operator >> (message<T>& msg, DataType& data){
@@ -47,17 +65,8 @@ struct message{
         std::memcpy(&data, msg.body.data() + i, sizeof(DataType));
 
         msg.body.resize(i);
-        msg.header.size = msg.size();
+        msg.header.size = static_cast<uint32_t>(msg.body.size());
 
-        return msg;
-    }
-
-        friend message<T>& operator<<(message<T>& msg, const std::string& data)
-    {
-        uint32_t length = data.size();
-        msg << length; // First, send string length
-        msg.body.insert(msg.body.end(), data.begin(), data.end()); // Then, send string chars
-        msg.header.size = msg.size();
         return msg;
     }
 
@@ -70,13 +79,12 @@ struct message{
         data.resize(length);
         std::memcpy(data.data(), msg.body.data() + msg.body.size() - length, length);
         msg.body.resize(msg.body.size() - length);
-        msg.header.size = msg.size();
+        msg.header.size = static_cast<uint32_t>(msg.body.size());
 
         return msg;
     }
 
-
-
+    
 };
 
 template<typename U>

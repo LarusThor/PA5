@@ -62,9 +62,9 @@ protected:
 			std::string sender = client->GetUsername();
 			message<CustomMsgTypes> broadcast;
 			broadcast.header.id = CustomMsgTypes::ServerMessage;
-			broadcast << sender << content;
+			broadcast << content << sender;
 			MessageAllClients(broadcast, client);
-
+			std::cout << "[SERVER] Broadcast from " << sender << ": " << content << "\n";
 		}
 		break;
 

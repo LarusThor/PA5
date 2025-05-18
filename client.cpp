@@ -25,6 +25,7 @@ public:
         }
     void MessageAll(const std::string& text)
 	{
+        std::cout << "Testing for entering message \n";
 		message<CustomMsgTypes> msg;
 		msg.header.id = CustomMsgTypes::MessageAll;	
         msg << text;	
@@ -55,6 +56,16 @@ public:
             msg >> content >> sender;
 
             std::cout << "[" << sender << "]: " << content << "\n";
+            break;
+        }
+
+        case CustomMsgTypes::MessageAll:
+        {
+            std::string sender;
+            std::string content;
+            msg >> content >> sender;
+
+            std::cout << "[" << sender << "]: " << "\n";
             break;
         }
 

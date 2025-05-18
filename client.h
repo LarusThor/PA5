@@ -17,8 +17,12 @@ class client_interface{
         
         void Send(const message<T>& msg)
         {
-            if (IsConnected())
+            std::cout << "Entering Send function \n";
+            if (IsConnected()){
+                    std::cout << "IsConnected resolves to true.. \n";
+                    std::cout << msg << "\n";
                     mainConnection->Send(msg);
+                }
         }
 
     public:
